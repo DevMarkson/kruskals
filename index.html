@@ -28,11 +28,53 @@
             font-size: 1.2em;
             font-weight: bold;
         }
+        #controls {
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        textarea {
+            width: 200px;
+            height: 150px;
+            font-family: monospace;
+            padding: 10px;
+        }
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 1em;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
     <h2>Kruskal's Algorithm (Edge-by-Edge)</h2>
+    
+    <div id="controls">
+        <textarea id="graph-input" placeholder="Format: A-B:4">
+A-B:4
+A-C:2
+B-C:1
+B-D:5
+C-D:8
+C-E:10
+D-E:2
+D-F:6
+E-F:3
+        </textarea>
+        <div class="buttons">
+            <button onclick="updateGraph()">Update Graph</button>
+            <button onclick="resetGraph()">Reset Animation</button>
+        </div>
+    </div>
+
     <div id="mynetwork"></div>
     <div id="status-box">Starting up...</div>
 
@@ -73,64 +115,78 @@
             }
         }
 
-        // 2. GRAPH DATA SETUP
-        const nodesArray = [
-            { id: 'A', label: 'A', color: '#97C2FC' },
-            { id: 'B', label: 'B', color: '#97C2FC' },
-            { id: 'C', label: 'C', color: '#97C2FC' },
-            { id: 'D', label: 'D', color: '#97C2FC' },
-            { id: 'E', label: 'E', color: '#97C2FC' },
-            { id: 'F', label: 'F', color: '#97C2FC' }
-        ];
+        // Global state for dynamic updates
+        let currentRunId = 0;
+        let nodesArray = [];
+        let allEdges = [];
+        let nodes = new vis.DataSet([]);
+        let edges = new vis.DataSet([]);
+        let network = null;
+        let container = document.getElementById('mynetwork');
+        let statusBox = document.getElementById('status-box');
 
-        // Unsorted edges
-        const allEdges = [
-            { from: 'A', to: 'B', label: '4', weight: 4 },
-            { from: 'A', to: 'C', label: '2', weight: 2 },
-            { from: 'B', to: 'C', label: '1', weight: 1 },
-            { from: 'B', to: 'D', label: '5', weight: 5 },
-            { from: 'C', to: 'D', label: '8', weight: 8 },
-            { from: 'C', to: 'E', label: '10', weight: 10 },
-            { from: 'D', to: 'E', label: '2', weight: 2 },
-            { from: 'D', to: 'F', label: '6', weight: 6 },
-            { from: 'E', to: 'F', label: '3', weight: 3 }
-        ];
+        function parseGraphInput() {
+            const text = document.getElementById('graph-input').value;
+            const lines = text.split('\n');
+            const nodeSet = new Set();
+            const parsedEdges = [];
 
-        // Sort edges by weight ascending (Crucial for Kruskal's)
-        allEdges.sort((a, b) => a.weight - b.weight);
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+                // Match "Node1-Node2:Weight" format
+                const match = line.match(/^([^-:]+)-([^-:]+):(-?\d+)$/);
+                if (match) {
+                    const u = match[1].trim();
+                    const v = match[2].trim();
+                    const w = parseInt(match[3], 10);
+                    nodeSet.add(u);
+                    nodeSet.add(v);
+                    parsedEdges.push({ from: u, to: v, label: String(w), weight: w });
+                }
+            });
 
-        // 3. VIS.JS INITIALIZATION
-        const nodes = new vis.DataSet(nodesArray);
-        const edges = new vis.DataSet([]); // Start with no edges drawn
+            nodesArray = Array.from(nodeSet).map(id => ({ id, label: id, color: '#97C2FC' }));
+            allEdges = parsedEdges;
+            allEdges.sort((a, b) => a.weight - b.weight);
+        }
 
-        const container = document.getElementById('mynetwork');
-        const data = { nodes: nodes, edges: edges };
-        const options = {
-            physics: {
-                enabled: true,
-                barnesHut: { springLength: 150 }
-            },
-            edges: {
-                font: { size: 16, align: 'top' },
-                smooth: false // Straight lines are usually better for standard MSTs
+        function initNetwork() {
+            nodes = new vis.DataSet(nodesArray);
+            edges = new vis.DataSet([]); // Start with no edges drawn
+
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                physics: {
+                    enabled: true,
+                    barnesHut: { springLength: 150 }
+                },
+                edges: {
+                    font: { size: 16, align: 'top' },
+                    smooth: false // Straight lines are usually better for standard MSTs
+                }
+            };
+
+            if (network) {
+                network.destroy();
             }
-        };
-
-        const network = new vis.Network(container, data, options);
-        const statusBox = document.getElementById('status-box');
+            network = new vis.Network(container, data, options);
+        }
 
         // Helper function to pause execution for animations
         const delay = ms => new Promise(res => setTimeout(res, ms));
 
-        // 4. ANIMATION & ALGORITHM LOGIC
-        async function runKruskal() {
+        // ANIMATION & ALGORITHM LOGIC
+        async function runKruskal(runId) {
             const ds = new DisjointSet(nodesArray);
             let acceptedEdgesCount = 0;
-            const targetEdges = nodesArray.length - 1; // V - 1 edges needed for MST
+            const targetEdges = nodesArray.length > 0 ? nodesArray.length - 1 : 0;
 
             // Give the physics engine a second to settle the nodes before drawing lines
+            statusBox.style.color = "black";
             statusBox.innerText = "Sorting edges... starting algorithm.";
             await delay(1500);
+            if (currentRunId !== runId) return;
 
             for (let i = 0; i < allEdges.length; i++) {
                 // Stop early if MST is complete
@@ -143,6 +199,7 @@
                 statusBox.innerText = `Evaluating edge ${edge.from}-${edge.to} (Weight: ${edge.weight})...`;
                 
                 await delay(1000); // Pause for dramatic effect
+                if (currentRunId !== runId) return;
 
                 if (ds.union(edge.from, edge.to)) {
                     // ACCEPTED
@@ -174,26 +231,42 @@
                     });
                     
                     await delay(1000); // Leave the red line up briefly
+                    if (currentRunId !== runId) return;
                     edges.remove(`edge_${i}`); // Remove it
                 }
                 
                 await delay(1000); // Pause before moving to the next edge
+                if (currentRunId !== runId) return;
             }
 
             // Final state
-            if (acceptedEdgesCount === targetEdges) {
+            if (acceptedEdgesCount === targetEdges && targetEdges > 0) {
                 statusBox.style.color = "#27ae60";
                 statusBox.innerText = "🎉 Minimum Spanning Tree Complete! 🎉";
                 // Optionally turn off physics here so the graph freezes in place
                 network.setOptions({ physics: { enabled: false } }); 
-            } else {
+            } else if (targetEdges > 0) {
                 statusBox.style.color = "#d35400";
                 statusBox.innerText = "Algorithm finished. (Graph was disconnected)";
+            } else {
+                statusBox.style.color = "black";
+                statusBox.innerText = "No graph data.";
             }
         }
 
-        // Start the process
-        runKruskal();
+        function updateGraph() {
+            parseGraphInput();
+            resetGraph();
+        }
+
+        function resetGraph() {
+            currentRunId++;
+            initNetwork();
+            runKruskal(currentRunId);
+        }
+
+        // Start the process initially
+        updateGraph();
     </script>
 </body>
 </html>
