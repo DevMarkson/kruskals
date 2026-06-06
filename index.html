@@ -8,28 +8,68 @@
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 20px;
             text-align: center;
+            background-color: #f8fafc;
+            color: #1e293b;
         }
 
-        #mynetwork {
-            width: 800px;
-            height: 500px;
-            border: 1px solid lightgray;
-            background-color: #fcfcfc;
-            margin: 0 auto;
+        h1 {
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .visualization-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+
+        .panel {
+            flex: 1;
+            min-width: 450px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            color: #334155;
+            font-size: 1.15rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        .network-view {
+            height: 450px;
+            border: 1px solid #e2e8f0;
+            background-color: #fafafa;
+            border-radius: 8px;
         }
 
         #status-box {
             margin-top: 20px;
-            padding: 15px;
-            background-color: #eee;
-            border-radius: 5px;
+            padding: 15px 25px;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
             display: inline-block;
-            min-width: 300px;
-            font-size: 1.2em;
-            font-weight: bold;
+            min-width: 350px;
+            font-size: 1.15em;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
         }
 
         #controls {
@@ -37,26 +77,58 @@
             display: flex;
             justify-content: center;
             gap: 20px;
-            align-items: flex-start;
+            align-items: center;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 600px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
 
         textarea {
-            width: 200px;
-            height: 150px;
+            width: 250px;
+            height: 120px;
             font-family: monospace;
             padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            resize: none;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
 
         .buttons {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         button {
-            padding: 10px 15px;
-            font-size: 1em;
+            padding: 10px 20px;
+            font-size: 0.95em;
+            font-weight: 600;
             cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background-color: #3b82f6;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #2563eb;
+        }
+
+        button.reset-btn {
+            background-color: #64748b;
+        }
+
+        button.reset-btn:hover {
+            background-color: #475569;
         }
 
         table {
@@ -64,29 +136,38 @@
             width: 100%;
             max-width: 600px;
             border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
+        }
+
+        table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
         }
 
         table th,
         table td {
-            padding: 10px;
+            padding: 12px 15px;
             text-align: left;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid #e2e8f0;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Kruskal's Algorithm</h1>
-
-    <p>This is a simple web based visualizer for Kruskal's algorithm for finding the minimum spanning tree.</p>
-
-    <p>Submitted by:</p>
+    <h1>Kruskal's Algorithm Visualizer</h1>
+    <p class="subtitle">A visual tool to demonstrate Kruskal's Minimum Spanning Tree (MST) Algorithm.</p>
 
     <table>
         <thead>
-            <th>Name</th>
-            <th>Matriculation Number</th>
+            <tr>
+                <th>Name</th>
+                <th>Matriculation Number</th>
+            </tr>
         </thead>
         <tbody>
             <tr>
@@ -118,209 +199,24 @@ E-F:3
         </textarea>
         <div class="buttons">
             <button onclick="updateGraph()">Update Graph</button>
-            <button onclick="resetGraph()">Reset Animation</button>
+            <button onclick="resetGraph()" class="reset-btn">Reset Animation</button>
         </div>
     </div>
 
-    <div id="mynetwork"></div>
+    <div class="visualization-container">
+        <div class="panel">
+            <h3>Original Graph (Reference)</h3>
+            <div id="network-original" class="network-view"></div>
+        </div>
+        <div class="panel">
+            <h3>Kruskal's MST Process</h3>
+            <div id="network-kruskal" class="network-view"></div>
+        </div>
+    </div>
+
     <div id="status-box">Starting up...</div>
 
-    <script>
-
-        const GREEN = "#10B981";
-        const RED = "#EF4444";
-        const EDGE_COLOUR = "#10B981"; 
-        const EDGE_REJECTED_COLOUR = "#EF4444"; 
-        const NODE_COLOUR = "#3B82F6";
-
-        // DISJOINT SET (UNION-FIND) IMPLEMENTATION
-        class DisjointSet {
-            constructor(nodes) {
-                this.parent = {};
-                this.rank = {};
-                nodes.forEach(node => {
-                    this.parent[node.id] = node.id;
-                    this.rank[node.id] = 0;
-                });
-            }
-
-            find(i) {
-                if (this.parent[i] === i) return i;
-                this.parent[i] = this.find(this.parent[i]); // Path compression
-                return this.parent[i];
-            }
-
-            union(i, j) {
-                let rootI = this.find(i);
-                let rootJ = this.find(j);
-
-                if (rootI !== rootJ) {
-                    if (this.rank[rootI] < this.rank[rootJ]) {
-                        this.parent[rootI] = rootJ;
-                    } else if (this.rank[rootI] > this.rank[rootJ]) {
-                        this.parent[rootJ] = rootI;
-                    } else {
-                        this.parent[rootJ] = rootI;
-                        this.rank[rootI]++;
-                    }
-                    return true; // Union successful (no cycle)
-                }
-                return false; // Cycle detected
-            }
-        }
-
-        // Global state for dynamic updates
-        let currentRunId = 0;
-        let nodesArray = [];
-        let allEdges = [];
-        let nodes = new vis.DataSet([]);
-        let edges = new vis.DataSet([]);
-        let network = null;
-        let container = document.getElementById('mynetwork');
-        let statusBox = document.getElementById('status-box');
-
-        function parseGraphInput() {
-            const text = document.getElementById('graph-input').value;
-            const lines = text.split('\n');
-            const nodeSet = new Set();
-            const parsedEdges = [];
-
-            lines.forEach(line => {
-                line = line.trim();
-                if (!line) return;
-                // Match "Node1-Node2:Weight" format
-                const match = line.match(/^([^-:]+)-([^-:]+):(-?\d+)$/);
-                if (match) {
-                    const u = match[1].trim();
-                    const v = match[2].trim();
-                    const w = parseInt(match[3], 10);
-                    nodeSet.add(u);
-                    nodeSet.add(v);
-                    parsedEdges.push({ from: u, to: v, label: String(w), weight: w });
-                }
-            });
-
-            nodesArray = Array.from(nodeSet).map(id => ({ id, label: id, color: NODE_COLOUR }));
-            allEdges = parsedEdges;
-            allEdges.sort((a, b) => a.weight - b.weight);
-        }
-
-        function initNetwork() {
-            nodes = new vis.DataSet(nodesArray);
-            edges = new vis.DataSet([]); // Start with no edges drawn
-
-            const data = { nodes: nodes, edges: edges };
-            const options = {
-                physics: {
-                    enabled: true,
-                    barnesHut: { springLength: 150 }
-                },
-                edges: {
-                    font: { size: 16, align: 'top' },
-                    smooth: false
-                }
-            };
-
-            if (network) {
-                network.destroy();
-            }
-            network = new vis.Network(container, data, options);
-        }
-
-        // Helper function to pause execution for animations
-        const delay = ms => new Promise(res => setTimeout(res, ms));
-
-        // ANIMATION & ALGORITHM LOGIC
-        async function runKruskal(runId) {
-            const ds = new DisjointSet(nodesArray);
-            let acceptedEdgesCount = 0;
-            const targetEdges = nodesArray.length > 0 ? nodesArray.length - 1 : 0;
-
-            statusBox.style.color = "black";
-            statusBox.innerText = "Sorting edges... starting algorithm.";
-            await delay(1500);
-            if (currentRunId !== runId) return;
-
-            for (let i = 0; i < allEdges.length; i++) {
-                // Stop early if MST is complete
-                if (acceptedEdgesCount === targetEdges) {
-                    break;
-                }
-
-                const edge = allEdges[i];
-                statusBox.style.color = "black";
-                statusBox.innerText = `Evaluating edge ${edge.from}-${edge.to} (Weight: ${edge.weight})...`;
-
-                await delay(1000);
-                if (currentRunId !== runId) return;
-
-                if (ds.union(edge.from, edge.to)) {
-                    // ACCEPTED
-                    statusBox.style.color = GREEN; // Green
-                    statusBox.innerText = `Accepted edge ${edge.from}-${edge.to}!`;
-                    edges.add({
-                        id: `edge_${i}`,
-                        from: edge.from,
-                        to: edge.to,
-                        label: edge.label,
-                        color: { color: EDGE_COLOUR, highlight: EDGE_COLOUR },
-                        width: 4
-                    });
-                    acceptedEdgesCount++;
-                } else {
-                    // REJECTED (CYCLE)
-                    statusBox.style.color = RED; // Red
-                    statusBox.innerText = `Rejected edge ${edge.from}-${edge.to} (Forms a Cycle).`;
-
-                    // Draw it dashed red to show it fails
-                    edges.add({
-                        id: `edge_${i}`,
-                        from: edge.from,
-                        to: edge.to,
-                        label: edge.label,
-                        color: { color: EDGE_REJECTED_COLOUR, highlight: EDGE_REJECTED_COLOUR },
-                        dashes: true,
-                        width: 2
-                    });
-
-                    await delay(1000); // Leave the red line up briefly
-                    if (currentRunId !== runId) return;
-                    edges.remove(`edge_${i}`); // Remove it
-                }
-
-                await delay(1000); // Pause before moving to the next edge
-                if (currentRunId !== runId) return;
-            }
-
-            // Final state
-            if (acceptedEdgesCount === targetEdges && targetEdges > 0) {
-                statusBox.style.color = GREEN;
-                statusBox.innerText = "🎉 Minimum Spanning Tree Complete! 🎉";
-                // Turn off physics here so the graph freezes in place
-                network.setOptions({ physics: { enabled: false } });
-            } else if (targetEdges > 0) {
-                statusBox.style.color = RED;
-                statusBox.innerText = "Algorithm finished. (Graph was disconnected)";
-            } else {
-                statusBox.style.color = "black";
-                statusBox.innerText = "No graph data.";
-            }
-        }
-
-        function updateGraph() {
-            parseGraphInput();
-            resetGraph();
-        }
-
-        function resetGraph() {
-            currentRunId++;
-            initNetwork();
-            runKruskal(currentRunId);
-        }
-
-        // Start the process initially
-        updateGraph();
-    </script>
+    <script src="kruskal.js"></script>
 </body>
 
 </html>
