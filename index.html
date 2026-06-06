@@ -162,6 +162,29 @@
     <h1>Kruskal's Algorithm Visualizer</h1>
     <p class="subtitle">A visual tool to demonstrate Kruskal's Minimum Spanning Tree (MST) Algorithm.</p>
 
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Matriculation Number</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Alikah, Joseph</td>
+                <td>231414</td>
+            </tr>
+            <tr>
+                <td>Markson, Favour</td>
+                <td>230905</td>
+            </tr>
+            <tr>
+                <td>Afolabi, Peace</td>
+                <td>230882</td>
+            </tr>
+        </tbody>
+    </table>
+
     <div id="controls">
         <textarea id="graph-input" placeholder="Format: A-B:4">
 A-B:4
@@ -192,29 +215,6 @@ E-F:3
     </div>
 
     <div id="status-box">Starting up...</div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Matriculation Number</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Alikah, Joseph</td>
-                <td>231414</td>
-            </tr>
-            <tr>
-                <td>Markson, Favour</td>
-                <td>230905</td>
-            </tr>
-            <tr>
-                <td>Afolabi, Peace</td>
-                <td>230882</td>
-            </tr>
-        </tbody>
-    </table>
 
     <script>
 
@@ -363,8 +363,15 @@ E-F:3
                 for (const nodeId in positions) {
                     nodesKruskal.update({ id: nodeId, x: positions[nodeId].x, y: positions[nodeId].y });
                 }
-                // Lock positions in Kruskal network so it matches Original network layout exactly
+                // Lock positions in both networks so they match exactly and stop drifting
+                networkOriginal.setOptions({ physics: { enabled: false } });
                 networkKruskal.setOptions({ physics: { enabled: false } });
+                
+                // Centering and fitting all nodes in the visible area
+                setTimeout(() => {
+                    networkOriginal.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+                    networkKruskal.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+                }, 50);
             });
         }
 
